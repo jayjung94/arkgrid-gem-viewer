@@ -401,6 +401,11 @@ function renderReplacementPlan() {
       ? "지금 낀 젬들의 옵션을 실제 딜증(%)으로 환산해서, 목표 조합에 맞춰 가장 먼저 손봐야 할 슬롯부터 보여줍니다. 교체/재가공 시 필요한 티어의 현재 시세도 함께 표시합니다."
       : "지금 낀 젬들의 옵션을 아군 공격 강화 기준 전투력 점수로 환산해서, 목표 조합에 맞춰 가장 먼저 손봐야 할 슬롯부터 보여줍니다. 교체/재가공 시 필요한 티어의 현재 시세도 함께 표시합니다.";
 
+  const lopecUrl = `https://lopec.kr/character/simulator/${encodeURIComponent(currentCharacterData.name)}`;
+  document.getElementById("lopecNote").innerHTML =
+    `<span>이 %는 로펙(lopec.kr)이 공개하는 실제 딜증 환산율과 비교 검증한 값이에요 — <b>실제 점수 변화</b>는 골드를 쓰기 전에 로펙 시뮬레이터에서 마지막으로 확인하세요.</span>` +
+    `<a href="${lopecUrl}" target="_blank" rel="noopener">로펙에서 확인 →</a>`;
+
   const allRecs = [];
   currentCharacterData.cores.forEach((core) => {
     allRecs.push(...buildCorePlan(core, scenarioKey, role));

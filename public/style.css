@@ -407,6 +407,34 @@ body {
   margin: 0 0 16px;
 }
 
+.lopec-note {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin-bottom: 16px;
+  font-size: 12px;
+  color: var(--ink-muted);
+}
+.lopec-note b {
+  color: var(--ink-secondary);
+  font-weight: 600;
+}
+.lopec-note a {
+  color: var(--order);
+  text-decoration: none;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.lopec-note a:hover {
+  text-decoration: underline;
+}
+
 .replacement-top {
   display: flex;
   flex-direction: column;
