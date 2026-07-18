@@ -129,8 +129,17 @@ function renderGem(gem, opts = {}) {
   const powerGain = estimatePowerGain(gap, role);
 
   let dpsHtml;
-  if (isGemComplete(gem, role)) {
-    dpsHtml = `<div class="gem-value gem-complete">이미 완성된 옵션 (Lv.5 · Lv.5) — 더 좋아지려면 완전히 새 젬을 뽑아야 해요</div>`;
+  if (isFullyComplete(gem, role)) {
+    dpsHtml = `<div class="gem-value gem-complete">완전 종결 젬 (의지력·포인트·옵션 모두 기준 충족)</div>`;
+  } else if (isGemComplete(gem, role)) {
+    const wpSlack = willpowerSlack(gem);
+    const wpText =
+      wpSlack > 0
+        ? `의지력이 기준보다 <b>${wpSlack}</b> 높아요 (기준 ${TIER_TARGET_WILLPOWER[gem.tier]}, 현재 ${gem.willpower})`
+        : gem.corePoint !== TIER_TARGET_POINT
+        ? `포인트가 기준(${TIER_TARGET_POINT})과 달라요 (현재 ${gem.corePoint})`
+        : "";
+    dpsHtml = `<div class="gem-value gem-complete">옵션은 종결이에요 — ${wpText}</div>`;
   } else if (powerGain != null) {
     dpsHtml = `<div class="gem-value">완벽 재가공 시 예상 전투력 <b>+${powerGain.toFixed(2)}</b></div>`;
   } else {
@@ -222,6 +231,10 @@ function idealMaxForTier(role, tier) {
   return pair.reduce((sum, name) => sum + valueOf(role, name, 5), 0);
 }
 
+// 종결 젬의 필요 의지력·포인트 (질서/혼돈 동일 티어끼리는 같은 기준).
+const TIER_TARGET_WILLPOWER = { 안정: 3, 견고: 4, 불변: 5, 침식: 3, 왜곡: 4, 붕괴: 5 };
+const TIER_TARGET_POINT = 5;
+
 function currentRole() {
   return document.querySelector('input[name="role"]:checked')?.value || "dealer";
 }
@@ -239,9 +252,9 @@ function fmtValue(v, role) {
 }
 
 // 이 젬의 티어가 노리는 "종결" 2옵션(TIER_TARGET_PAIR)과 완전히 같은 옵션이
-// 둘 다 Lv.5로 떠 있으면 "이미 완성". 재가공은 같은 젬의 레벨을 올리는 게
-// 아니라 완전히 새 젬을 뽑는 도박이라, 이미 종결된 젬을 "고쳐야 할 것"으로
-// 추천하면 안 된다.
+// 둘 다 Lv.5로 떠 있으면 "옵션 종결". 재가공은 같은 젬의 레벨을 올리는 게
+// 아니라 완전히 새 젬을 뽑는 도박이라, 이미 옵션이 종결된 젬을 "고쳐야 할 것"으로
+// 추천하면 안 된다. (의지력/포인트는 별도로 isFullyComplete에서 확인)
 function isGemComplete(gem, role) {
   const target = TIER_TARGET_PAIR[role]?.[gem.tier];
   if (!target || gem.options.length !== 2) return false;
@@ -249,6 +262,21 @@ function isGemComplete(gem, role) {
   const targetNames = [...target].sort();
   const namesMatch = names.length === targetNames.length && names.every((n, i) => n === targetNames[i]);
   return namesMatch && gem.options.every((o) => o.level === 5);
+}
+
+// 옵션 종결에 더해 의지력·포인트까지 사용자가 지정한 종결 기준과 정확히 같으면
+// "완전 종결". 옵션은 종결인데 의지력이 기준보다 높은 경우(효율 롤이 아쉬운 경우)를
+// 구분해서 보여주기 위함.
+function isFullyComplete(gem, role) {
+  if (!isGemComplete(gem, role)) return false;
+  const targetWillpower = TIER_TARGET_WILLPOWER[gem.tier];
+  return gem.willpower === targetWillpower && gem.corePoint === TIER_TARGET_POINT;
+}
+
+function willpowerSlack(gem) {
+  const targetWillpower = TIER_TARGET_WILLPOWER[gem.tier];
+  if (targetWillpower == null || gem.willpower == null) return 0;
+  return gem.willpower - targetWillpower;
 }
 
 /* ---------------------------------------------------------------------- */
