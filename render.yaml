@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: arkgrid-gem-viewer
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: LOSTARK_API_KEY
+        sync: false

@@ -1,0 +1,15 @@
+{
+  "name": "arkgrid-gem-viewer",
+  "version": "1.0.0",
+  "description": "로스트아크 캐릭터 닉네임으로 아크그리드 장착 젬의 원본 옵션(의지력/포인트/옵션 레벨)을 보여주는 뷰어",
+  "main": "server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "express-rate-limit": "^8.6.0"
+  }
+}

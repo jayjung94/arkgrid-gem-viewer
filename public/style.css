@@ -1,0 +1,350 @@
+:root {
+  --bg: #12141a;
+  --panel: #1b1e27;
+  --panel2: #22262f;
+  --border: #333844;
+  --text: #e8e9ee;
+  --muted: #9099ab;
+  --order: #7ec8ff;
+  --chaos: #ff8f6b;
+  --ancient: #e3c7a1;
+  --relic: #fa5d00;
+  --accent: #ffd200;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  padding: 32px 16px 80px;
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Pretendard", "Malgun Gothic", -apple-system, sans-serif;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+header { text-align: center; max-width: 680px; margin-bottom: 24px; }
+h1 { font-size: 24px; margin-bottom: 8px; }
+.subtitle { color: var(--muted); font-size: 14px; line-height: 1.5; margin: 0; }
+
+.search-bar {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+  max-width: 420px;
+  margin-bottom: 24px;
+}
+.search-bar input {
+  flex: 1;
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--panel);
+  color: var(--text);
+  font-size: 15px;
+}
+.search-bar input:focus { outline: 2px solid var(--order); }
+.search-bar button {
+  padding: 10px 20px;
+  border-radius: 8px;
+  border: none;
+  background: var(--order);
+  color: #0a0f1a;
+  font-weight: 600;
+  cursor: pointer;
+}
+.search-bar button:hover { filter: brightness(1.08); }
+
+#status {
+  min-height: 20px;
+  color: var(--muted);
+  margin-bottom: 12px;
+  font-size: 14px;
+}
+#status.error { color: #ff6b6b; }
+
+#result {
+  width: 100%;
+  max-width: 1100px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.effects-summary {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px 20px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+}
+.effects-summary .effect {
+  font-size: 14px;
+}
+.effects-summary .effect .name { color: var(--muted); margin-right: 6px; }
+.effects-summary .effect .lvl { color: var(--accent); font-weight: 600; }
+
+.cores-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 18px;
+}
+
+.core-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px;
+}
+.core-card.order { border-top: 3px solid var(--order); }
+.core-card.chaos { border-top: 3px solid var(--chaos); }
+
+.core-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 4px;
+}
+.core-name { font-size: 15px; font-weight: 600; }
+.core-grade { font-size: 12px; color: var(--muted); }
+.core-grade.grade-고대 { color: var(--ancient); }
+.core-grade.grade-유물 { color: var(--relic); }
+
+.core-meta {
+  display: flex;
+  gap: 16px;
+  font-size: 13px;
+  color: var(--muted);
+  margin-bottom: 12px;
+}
+.core-meta b { color: var(--text); }
+.core-meta .over { color: #ff6b6b; font-weight: 700; }
+
+.gem-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.gem-row {
+  background: var(--panel2);
+  border-radius: 10px;
+  padding: 10px 12px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.gem-row img { width: 36px; height: 36px; border-radius: 6px; flex-shrink: 0; }
+.gem-body { flex: 1; min-width: 0; }
+.gem-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.gem-tier { font-size: 13px; font-weight: 600; }
+.gem-grade-tag {
+  font-size: 11px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+}
+.gem-grade-tag.grade-고대 { color: var(--ancient); border-color: var(--ancient); }
+.gem-grade-tag.grade-유물 { color: var(--relic); border-color: var(--relic); }
+
+.gem-stats {
+  font-size: 12px;
+  color: var(--muted);
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+.gem-stats b { color: var(--accent); font-weight: 700; }
+
+.gem-options {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.gem-option {
+  font-size: 12px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 2px 8px;
+}
+.gem-option .lv { color: var(--accent); font-weight: 700; margin-left: 4px; }
+
+.empty-note {
+  color: var(--muted);
+  font-size: 13px;
+  text-align: center;
+  padding: 12px;
+}
+
+@media (max-width: 480px) {
+  .cores-grid { grid-template-columns: 1fr; }
+}
+
+/* ---- 젬 시세 & 시나리오 섹션 ---- */
+.price-section {
+  width: 100%;
+  max-width: 1100px;
+  margin-top: 40px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border);
+}
+.price-section h2 { font-size: 19px; margin-bottom: 6px; }
+.price-section .subtitle { margin-bottom: 16px; }
+
+.scenario-picker {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  align-items: center;
+  width: 100%;
+  max-width: 1100px;
+  margin-bottom: 20px;
+}
+.scenario-picker-label {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+.scenario-picker label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 14px;
+  cursor: pointer;
+  font-size: 14px;
+}
+.scenario-picker input { accent-color: var(--order); }
+.tag-best, .tag-good {
+  font-size: 11px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-weight: 700;
+}
+.tag-best { background: rgba(255,210,0,0.15); color: var(--accent); }
+.tag-good { background: rgba(126,200,255,0.15); color: var(--order); }
+
+.price-status { color: var(--muted); font-size: 13px; margin-bottom: 12px; }
+
+.scenario-result {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.side-cost-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+}
+.side-cost-card h3 { font-size: 15px; margin: 0 0 10px; }
+.side-cost-card table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.side-cost-card th, .side-cost-card td { text-align: left; padding: 4px 0; }
+.side-cost-card th { color: var(--muted); font-weight: 500; }
+.side-cost-card td.num, .side-cost-card th.num { text-align: right; }
+.side-cost-card tfoot td { border-top: 1px solid var(--border); padding-top: 8px; font-weight: 700; color: var(--accent); }
+
+.compare-banner {
+  grid-column: 1 / -1;
+  background: linear-gradient(90deg, rgba(255,210,0,0.08), transparent);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 16px;
+  font-size: 14px;
+}
+.compare-banner b { color: var(--accent); }
+
+.price-table table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.price-table th, .price-table td { padding: 8px 10px; border-bottom: 1px solid var(--border); text-align: left; }
+.price-table th.num, .price-table td.num { text-align: right; }
+.price-table .rank-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  background: rgba(255,210,0,0.15);
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 700;
+  margin-right: 6px;
+}
+.price-table img { width: 22px; height: 22px; vertical-align: middle; margin-right: 6px; border-radius: 4px; }
+.price-table .delta-down { color: #6bd68a; }
+.price-table .delta-up { color: #ff6b6b; }
+
+/* ---- 교체 우선순위 섹션 ---- */
+.replacement-section {
+  width: 100%;
+  max-width: 1100px;
+  margin-top: 32px;
+}
+.replacement-section h2 { font-size: 19px; margin-bottom: 6px; }
+.replacement-section .subtitle { margin-bottom: 16px; }
+
+.replacement-top {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 24px;
+}
+.rec-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.rec-card .rec-rank {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  background: rgba(255,210,0,0.15);
+  color: var(--accent);
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.rec-card img { width: 32px; height: 32px; border-radius: 6px; flex-shrink: 0; }
+.rec-card .rec-body { flex: 1; min-width: 0; font-size: 13px; }
+.rec-card .rec-title { font-weight: 600; margin-bottom: 3px; }
+.rec-card .rec-detail { color: var(--muted); }
+.rec-card .rec-detail b { color: var(--text); }
+.rec-card .rec-gap { color: #ff6b6b; font-weight: 700; }
+.rec-card .rec-price {
+  text-align: right;
+  font-size: 13px;
+  flex-shrink: 0;
+}
+.rec-card .rec-price b { color: var(--accent); font-size: 15px; }
+.rec-card.mismatch { border-left: 3px solid #ff6b6b; }
+.rec-card.reprocess { border-left: 3px solid var(--order); }
+
+.replacement-cores {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 18px;
+}
+.gem-row.flag-worst { outline: 2px solid #ff6b6b; }
+.gem-value {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+.gem-value b { color: var(--accent); }

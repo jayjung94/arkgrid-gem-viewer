@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>아크그리드 젬 뷰어</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <h1>아크그리드 젬 뷰어</h1>
+    <p class="subtitle">캐릭터 닉네임을 검색하면 장착된 코어와 젬의 원본 옵션(필요 의지력·포인트·옵션 레벨)을 그대로 보여줍니다.</p>
+  </header>
+
+  <form id="searchForm" class="search-bar">
+    <input id="nameInput" type="text" placeholder="캐릭터 닉네임 입력 (예: 서강룡)" autocomplete="off" />
+    <button type="submit">검색</button>
+  </form>
+
+  <div class="scenario-picker">
+    <span class="scenario-picker-label">역할</span>
+    <label>
+      <input type="radio" name="role" value="dealer" checked />
+      딜러 <span class="tag-good">공격력/추가피해/보스피해</span>
+    </label>
+    <label>
+      <input type="radio" name="role" value="support" />
+      서포터 <span class="tag-good">아군 공격 강화/낙인력/아군 피해 강화</span>
+    </label>
+  </div>
+
+  <div class="scenario-picker">
+    <span class="scenario-picker-label">목표 조합</span>
+    <label>
+      <input type="radio" name="scenario" value="A" checked />
+      안정 + 견고 + 불변 + 불변 <span class="tag-best">최상 (딜증 최대)</span>
+    </label>
+    <label>
+      <input type="radio" name="scenario" value="B" />
+      견고 + 견고 + 견고 + 불변 <span class="tag-good">차선</span>
+    </label>
+  </div>
+
+  <div id="status"></div>
+  <div id="result"></div>
+
+  <section id="replacementSection" class="replacement-section" style="display:none">
+    <h2 id="replacementTitle">교체 우선순위</h2>
+    <p class="subtitle" id="replacementSubtitle">지금 낀 젬들의 옵션을 실제 가치로 환산해서, 목표 조합에 맞춰 가장 먼저 손봐야 할 슬롯부터 보여줍니다. 교체/재가공 시 필요한 티어의 현재 시세도 함께 표시합니다.</p>
+    <div id="replacementTop" class="replacement-top"></div>
+    <div id="replacementCores" class="replacement-cores"></div>
+  </section>
+
+  <section class="price-section">
+    <h2>젬 시세 &amp; 조합 시나리오 비교</h2>
+    <p class="subtitle">거래소 영웅 등급 원석 시세 기준으로, 두 조합 시나리오 중 코어당 비용이 어느 쪽이 더 싼지, 어떤 티어를 지금 사서 깎는 게 이득인지 보여줍니다. 질서(안정/견고/불변)·혼돈(침식/왜곡/붕괴) 모두 계산합니다.</p>
+
+    <div id="priceStatus" class="price-status"></div>
+    <div id="scenarioResult" class="scenario-result"></div>
+    <div id="priceTable" class="price-table"></div>
+  </section>
+
+  <script src="app.js"></script>
+</body>
+</html>
