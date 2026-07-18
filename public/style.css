@@ -371,6 +371,9 @@ body {
 .gem-value.gem-complete {
   color: var(--good);
 }
+.gem-value.gem-semi {
+  color: var(--order);
+}
 .gem-value b {
   color: var(--ink-secondary);
   font-weight: 600;

@@ -140,6 +140,8 @@ function renderGem(gem, opts = {}) {
         ? `포인트가 기준(${TIER_TARGET_POINT})과 달라요 (현재 ${gem.corePoint})`
         : "";
     dpsHtml = `<div class="gem-value gem-complete">옵션은 종결이에요 — ${wpText}</div>`;
+  } else if (isSemiComplete(gem, role)) {
+    dpsHtml = `<div class="gem-value gem-semi">준종결 젬이에요 (옵션 레벨 합 9) — 충분히 좋은 상태예요</div>`;
   } else if (powerGain != null) {
     dpsHtml = `<div class="gem-value">완벽 재가공 시 예상 전투력 <b>+${powerGain.toFixed(2)}</b></div>`;
   } else {
@@ -251,17 +253,25 @@ function fmtValue(v, role) {
   return role === "dealer" ? v.toFixed(3) : v.toFixed(2);
 }
 
-// 이 젬의 티어가 노리는 "종결" 2옵션(TIER_TARGET_PAIR)과 완전히 같은 옵션이
-// 둘 다 Lv.5로 떠 있으면 "옵션 종결". 재가공은 같은 젬의 레벨을 올리는 게
-// 아니라 완전히 새 젬을 뽑는 도박이라, 이미 옵션이 종결된 젬을 "고쳐야 할 것"으로
-// 추천하면 안 된다. (의지력/포인트는 별도로 isFullyComplete에서 확인)
-function isGemComplete(gem, role) {
+// 이 젬의 옵션 2개(이름)가 티어가 노리는 "종결" 조합(TIER_TARGET_PAIR)과 같은지만 본다
+// (레벨은 상관없이 이름만).
+function matchesTargetPair(gem, role) {
   const target = TIER_TARGET_PAIR[role]?.[gem.tier];
   if (!target || gem.options.length !== 2) return false;
   const names = gem.options.map((o) => o.name).sort();
   const targetNames = [...target].sort();
-  const namesMatch = names.length === targetNames.length && names.every((n, i) => n === targetNames[i]);
-  return namesMatch && gem.options.every((o) => o.level === 5);
+  return names.length === targetNames.length && names.every((n, i) => n === targetNames[i]);
+}
+
+function optionLevelSum(gem) {
+  return gem.options.reduce((sum, o) => sum + o.level, 0);
+}
+
+// 종결 조합과 같은 옵션이 둘 다 Lv.5(합 10)로 떠 있으면 "옵션 종결". 재가공은 같은
+// 젬의 레벨을 올리는 게 아니라 완전히 새 젬을 뽑는 도박이라, 이미 옵션이 종결된
+// 젬을 "고쳐야 할 것"으로 추천하면 안 된다. (의지력/포인트는 isFullyComplete에서 별도 확인)
+function isGemComplete(gem, role) {
+  return matchesTargetPair(gem, role) && gem.options.every((o) => o.level === 5);
 }
 
 // 옵션 종결에 더해 의지력·포인트까지 사용자가 지정한 종결 기준과 정확히 같으면
@@ -271,6 +281,16 @@ function isFullyComplete(gem, role) {
   if (!isGemComplete(gem, role)) return false;
   const targetWillpower = TIER_TARGET_WILLPOWER[gem.tier];
   return gem.willpower === targetWillpower && gem.corePoint === TIER_TARGET_POINT;
+}
+
+// "준종결": 종결 조합과 같은 옵션인데 레벨 합이 9(예: Lv.5 + Lv.4)이고, 의지력도
+// 이 티어의 기준 의지력이거나 그보다 1 높은 경우(효율 5 또는 4 롤)까지 인정한다.
+function isSemiComplete(gem, role) {
+  if (!matchesTargetPair(gem, role) || isGemComplete(gem, role)) return false;
+  if (optionLevelSum(gem) !== 9) return false;
+  const targetWillpower = TIER_TARGET_WILLPOWER[gem.tier];
+  if (targetWillpower == null || gem.willpower == null) return false;
+  return gem.willpower === targetWillpower || gem.willpower === targetWillpower + 1;
 }
 
 function willpowerSlack(gem) {
@@ -416,7 +436,7 @@ function buildCorePlan(core, scenarioKey, role) {
   });
 
   gems
-    .filter((g) => g.tierOk && !isGemComplete(g.gem, role))
+    .filter((g) => g.tierOk && !isGemComplete(g.gem, role) && !isSemiComplete(g.gem, role))
     .filter((g) => idealMaxForTier(role, g.gem.tier) - g.value > 0.001)
     .forEach((g) => {
       const targetMax = idealMaxForTier(role, g.gem.tier);
