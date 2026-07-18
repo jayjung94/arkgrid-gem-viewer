@@ -125,7 +125,12 @@ function renderGem(gem, opts = {}) {
   const val = valueOfGem(gem, role);
   const idealMax = idealMaxFor(role);
   const unit = ROLE_UNIT[role];
-  const dpsHtml = `<div class="gem-value">${ROLE_LABEL[role]} 가치 기여도 <b>${fmtValue(val, role)}${unit}</b> (이론 최대 ${fmtValue(idealMax, role)}${unit})</div>`;
+  const gap = idealMax - val;
+  const powerGain = estimatePowerGain(gap, role);
+  const dpsHtml =
+    powerGain != null
+      ? `<div class="gem-value">완벽 재가공 시 예상 전투력 <b>+${powerGain.toFixed(2)}</b></div>`
+      : `<div class="gem-value">${ROLE_LABEL[role]} 가치 기여도 <b>${fmtValue(val, role)}${unit}</b> (이론 최대 ${fmtValue(idealMax, role)}${unit})</div>`;
 
   row.innerHTML = `
     <img src="${gem.icon}" alt="${gem.tier}" />
@@ -389,6 +394,10 @@ function renderRecCard(r, rank, role) {
     powerGain != null
       ? `<div class="rec-power">예상 전투력 <b>+${powerGain.toFixed(2)}</b></div>`
       : "";
+  const valueDetail =
+    powerGain != null
+      ? ""
+      : ` · 가치 <b>${fmtValue(r.value, role)}${unit}</b> (이론 최대 ${fmtValue(idealMax, role)}${unit} 대비 <span class="rec-gap">-${fmtValue(r.gap, role)}${unit}</span>)`;
 
   return `
     <div class="rec-card ${r.type === "mismatch" ? "mismatch" : "reprocess"}">
@@ -396,7 +405,7 @@ function renderRecCard(r, rank, role) {
       <img src="${r.gem.icon}" alt="" />
       <div class="rec-body">
         <div class="rec-title">${r.core.name} · ${actionLabel}</div>
-        <div class="rec-detail">현재 옵션: <b>${optionsText}</b> · 가치 <b>${fmtValue(r.value, role)}${unit}</b> (이론 최대 ${fmtValue(idealMax, role)}${unit} 대비 <span class="rec-gap">-${fmtValue(r.gap, role)}${unit}</span>)</div>
+        <div class="rec-detail">현재 옵션: <b>${optionsText}</b>${valueDetail}</div>
       </div>
       <div class="rec-price">
         ${powerHtml}
