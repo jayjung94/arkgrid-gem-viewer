@@ -368,6 +368,9 @@ body {
   color: var(--ink-muted);
   font-variant-numeric: tabular-nums;
 }
+.gem-value.gem-complete {
+  color: var(--good);
+}
 .gem-value b {
   color: var(--ink-secondary);
   font-weight: 600;

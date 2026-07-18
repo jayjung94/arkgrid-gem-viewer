@@ -127,10 +127,15 @@ function renderGem(gem, opts = {}) {
   const unit = ROLE_UNIT[role];
   const gap = idealMax - val;
   const powerGain = estimatePowerGain(gap, role);
-  const dpsHtml =
-    powerGain != null
-      ? `<div class="gem-value">완벽 재가공 시 예상 전투력 <b>+${powerGain.toFixed(2)}</b></div>`
-      : `<div class="gem-value">${ROLE_LABEL[role]} 가치 기여도 <b>${fmtValue(val, role)}${unit}</b> (이론 최대 ${fmtValue(idealMax, role)}${unit})</div>`;
+
+  let dpsHtml;
+  if (isGemComplete(gem, role)) {
+    dpsHtml = `<div class="gem-value gem-complete">이미 완성된 옵션 (Lv.5 · Lv.5) — 더 좋아지려면 완전히 새 젬을 뽑아야 해요</div>`;
+  } else if (powerGain != null) {
+    dpsHtml = `<div class="gem-value">완벽 재가공 시 예상 전투력 <b>+${powerGain.toFixed(2)}</b></div>`;
+  } else {
+    dpsHtml = `<div class="gem-value">${ROLE_LABEL[role]} 가치 기여도 <b>${fmtValue(val, role)}${unit}</b> (이론 최대 ${fmtValue(idealMax, role)}${unit})</div>`;
+  }
 
   row.innerHTML = `
     <img src="${gem.icon}" alt="${gem.tier}" />
@@ -202,6 +207,16 @@ function valueOfGem(gem, role) {
 
 function fmtValue(v, role) {
   return role === "dealer" ? v.toFixed(3) : v.toFixed(2);
+}
+
+// 옵션 2개가 전부 Lv.5이고 둘 다 이 역할에 의미있는(값>0) 옵션이면 "이미 완성".
+// 재가공은 같은 젬의 레벨을 올리는 게 아니라 완전히 새 젬을 뽑는 도박이라,
+// 이미 만렙인 젬을 "고쳐야 할 것"으로 추천하면 안 된다.
+function isGemComplete(gem, role) {
+  return (
+    gem.options.length > 0 &&
+    gem.options.every((o) => o.level === 5 && valueOf(role, o.name, 5) > 0)
+  );
 }
 
 /* ---------------------------------------------------------------------- */
@@ -339,7 +354,7 @@ function buildCorePlan(core, scenarioKey, role) {
   });
 
   gems
-    .filter((g) => g.tierOk && idealMax - g.value > 0.001)
+    .filter((g) => g.tierOk && idealMax - g.value > 0.001 && !isGemComplete(g.gem, role))
     .forEach((g) => {
       recommendations.push({
         core,
