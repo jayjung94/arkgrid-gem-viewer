@@ -366,6 +366,13 @@ function priceForTier(side, tierName) {
   return row ? row.currentMinPrice : null;
 }
 
+// 딜러 한정: "현재 전투력 × (딜증 격차 / 100)"으로 젬 교체 시 예상 전투력 상승분을 추정한다.
+// (전투력이 총 딜증 배율에 비례한다고 가정한 근사치 — 로펙 등 커뮤니티 툴도 쓰는 방식)
+function estimatePowerGain(gap, role) {
+  if (role !== "dealer" || !currentCharacterData?.combatPower) return null;
+  return currentCharacterData.combatPower * (gap / 100);
+}
+
 function renderRecCard(r, rank, role) {
   const price = priceForTier(r.side, r.recommendedTier);
   const priceHtml = price != null ? `<b>${price.toLocaleString()}</b> 골드` : "시세 정보 없음";
@@ -377,6 +384,12 @@ function renderRecCard(r, rank, role) {
   const unit = ROLE_UNIT[role];
   const idealMax = idealMaxFor(role);
 
+  const powerGain = estimatePowerGain(r.gap, role);
+  const powerHtml =
+    powerGain != null
+      ? `<div class="rec-power">예상 전투력 <b>+${powerGain.toFixed(2)}</b></div>`
+      : "";
+
   return `
     <div class="rec-card ${r.type === "mismatch" ? "mismatch" : "reprocess"}">
       <div class="rec-rank">${rank}</div>
@@ -385,7 +398,10 @@ function renderRecCard(r, rank, role) {
         <div class="rec-title">${r.core.name} · ${actionLabel}</div>
         <div class="rec-detail">현재 옵션: <b>${optionsText}</b> · 가치 <b>${fmtValue(r.value, role)}${unit}</b> (이론 최대 ${fmtValue(idealMax, role)}${unit} 대비 <span class="rec-gap">-${fmtValue(r.gap, role)}${unit}</span>)</div>
       </div>
-      <div class="rec-price">${r.recommendedTier} 시세<br>${priceHtml}</div>
+      <div class="rec-price">
+        ${powerHtml}
+        ${r.recommendedTier} 시세<br>${priceHtml}
+      </div>
     </div>
   `;
 }
@@ -402,8 +418,12 @@ function renderReplacementPlan() {
       : "지금 낀 젬들의 옵션을 아군 공격 강화 기준 전투력 점수로 환산해서, 목표 조합에 맞춰 가장 먼저 손봐야 할 슬롯부터 보여줍니다. 교체/재가공 시 필요한 티어의 현재 시세도 함께 표시합니다.";
 
   const lopecUrl = `https://lopec.kr/character/simulator/${encodeURIComponent(currentCharacterData.name)}`;
+  const powerNote =
+    role === "dealer" && currentCharacterData.combatPower
+      ? ` "예상 전투력"은 현재 전투력(${currentCharacterData.combatPower.toLocaleString()}) 기준, 재가공이 성공해서 이론 최댓값이 나온다고 가정한 <b>상한 추정치</b>예요 — 실제 가공은 확률이라 이보다 적게 오를 수 있습니다.`
+      : "";
   document.getElementById("lopecNote").innerHTML =
-    `<span>이 %는 로펙(lopec.kr)이 공개하는 실제 딜증 환산율과 비교 검증한 값이에요 — <b>실제 점수 변화</b>는 골드를 쓰기 전에 로펙 시뮬레이터에서 마지막으로 확인하세요.</span>` +
+    `<span>이 %는 로펙(lopec.kr)이 공개하는 실제 딜증 환산율과 비교 검증한 값이에요.${powerNote} <b>정확한 점수 변화</b>는 골드를 쓰기 전에 로펙 시뮬레이터에서 마지막으로 확인하세요.</span>` +
     `<a href="${lopecUrl}" target="_blank" rel="noopener">로펙에서 확인 →</a>`;
 
   const allRecs = [];

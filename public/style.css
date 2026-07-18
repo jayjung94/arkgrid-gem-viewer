@@ -502,6 +502,15 @@ body {
   font-size: 14px;
   font-weight: 700;
 }
+.rec-card .rec-power {
+  margin-bottom: 4px;
+  color: var(--ink-muted);
+}
+.rec-card .rec-power b {
+  color: var(--good);
+  font-size: 14px;
+  font-weight: 700;
+}
 .rec-card.mismatch {
   box-shadow: inset 3px 0 0 var(--critical);
 }

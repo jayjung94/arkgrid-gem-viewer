@@ -44,33 +44,39 @@ app.get("/api/gems", async (req, res) => {
   }
 
   try {
-    const url = `https://developer-lostark.game.onstove.com/armories/characters/${encodeURIComponent(
-      name
-    )}/arkgrid`;
-    const apiRes = await fetch(url, {
-      headers: {
-        accept: "application/json",
-        authorization: `bearer ${API_KEY}`,
-      },
-    });
+    const base = `https://developer-lostark.game.onstove.com/armories/characters/${encodeURIComponent(name)}`;
+    const authHeaders = { accept: "application/json", authorization: `bearer ${API_KEY}` };
 
-    if (apiRes.status === 404) {
+    const [arkgridRes, profileRes] = await Promise.all([
+      fetch(`${base}/arkgrid`, { headers: authHeaders }),
+      fetch(`${base}/profiles`, { headers: authHeaders }),
+    ]);
+
+    if (arkgridRes.status === 404) {
       return res.status(404).json({ error: "해당 닉네임의 캐릭터를 찾을 수 없습니다." });
     }
-    if (apiRes.status === 401 || apiRes.status === 403) {
+    if (arkgridRes.status === 401 || arkgridRes.status === 403) {
       return res.status(500).json({ error: "API 키가 유효하지 않거나 만료되었습니다." });
     }
-    if (!apiRes.ok) {
-      return res.status(apiRes.status).json({ error: `Open API 오류 (status ${apiRes.status})` });
+    if (!arkgridRes.ok) {
+      return res.status(arkgridRes.status).json({ error: `Open API 오류 (status ${arkgridRes.status})` });
     }
 
-    const raw = await apiRes.json();
+    const raw = await arkgridRes.json();
     if (!raw || !raw.Slots || raw.Slots.length === 0) {
       return res.status(404).json({ error: "장착된 아크그리드 코어/젬 정보가 없습니다." });
     }
 
+    let combatPower = null;
+    if (profileRes.ok) {
+      const profile = await profileRes.json();
+      // "4,765.58" 같은 콤마 포함 문자열로 내려온다.
+      const num = Number(String(profile.CombatPower || "").replace(/,/g, ""));
+      combatPower = Number.isFinite(num) && num > 0 ? num : null;
+    }
+
     const parsed = parseArkGrid(raw);
-    const payload = { name, ...parsed };
+    const payload = { name, combatPower, ...parsed };
     gemsCache.set(name, { at: Date.now(), data: payload });
     res.json(payload);
   } catch (err) {
