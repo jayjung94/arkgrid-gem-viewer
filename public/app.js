@@ -123,7 +123,7 @@ function renderGem(gem, opts = {}) {
     .join("");
 
   const val = valueOfGem(gem, role);
-  const idealMax = idealMaxFor(role);
+  const idealMax = idealMaxForTier(role, gem.tier);
   const unit = ROLE_UNIT[role];
   const gap = idealMax - val;
   const powerGain = estimatePowerGain(gap, role);
@@ -193,6 +193,35 @@ function idealMaxFor(role) {
     .reduce((a, b) => a + b, 0);
 }
 
+// 티어마다 실제로 노려야 하는 "종결" 2옵션 조합 (사용자 제공 값 기준).
+// 안정=침식, 견고=왜곡, 불변=붕괴가 각각 같은 목표 조합을 쓴다.
+const TIER_TARGET_PAIR = {
+  dealer: {
+    안정: ["공격력", "추가 피해"],
+    견고: ["공격력", "보스 피해"],
+    불변: ["추가 피해", "보스 피해"],
+    침식: ["공격력", "추가 피해"],
+    왜곡: ["공격력", "보스 피해"],
+    붕괴: ["추가 피해", "보스 피해"],
+  },
+  support: {
+    안정: ["낙인력", "아군 피해 강화"],
+    견고: ["아군 공격 강화", "아군 피해 강화"],
+    불변: ["아군 공격 강화", "낙인력"],
+    침식: ["낙인력", "아군 피해 강화"],
+    왜곡: ["아군 공격 강화", "아군 피해 강화"],
+    붕괴: ["아군 공격 강화", "낙인력"],
+  },
+};
+
+// 이 티어의 "종결" 조합(2옵션 모두 Lv.5)이 만드는 값. 티어마다 목표 조합 자체가 다르므로
+// 안정 < 견고 < 불변 순으로 커진다 (의지력을 더 쓰는 만큼 상한도 높다).
+function idealMaxForTier(role, tier) {
+  const pair = TIER_TARGET_PAIR[role]?.[tier];
+  if (!pair) return idealMaxFor(role);
+  return pair.reduce((sum, name) => sum + valueOf(role, name, 5), 0);
+}
+
 function currentRole() {
   return document.querySelector('input[name="role"]:checked')?.value || "dealer";
 }
@@ -209,14 +238,17 @@ function fmtValue(v, role) {
   return role === "dealer" ? v.toFixed(3) : v.toFixed(2);
 }
 
-// 옵션 2개가 전부 Lv.5이고 둘 다 이 역할에 의미있는(값>0) 옵션이면 "이미 완성".
-// 재가공은 같은 젬의 레벨을 올리는 게 아니라 완전히 새 젬을 뽑는 도박이라,
-// 이미 만렙인 젬을 "고쳐야 할 것"으로 추천하면 안 된다.
+// 이 젬의 티어가 노리는 "종결" 2옵션(TIER_TARGET_PAIR)과 완전히 같은 옵션이
+// 둘 다 Lv.5로 떠 있으면 "이미 완성". 재가공은 같은 젬의 레벨을 올리는 게
+// 아니라 완전히 새 젬을 뽑는 도박이라, 이미 종결된 젬을 "고쳐야 할 것"으로
+// 추천하면 안 된다.
 function isGemComplete(gem, role) {
-  return (
-    gem.options.length > 0 &&
-    gem.options.every((o) => o.level === 5 && valueOf(role, o.name, 5) > 0)
-  );
+  const target = TIER_TARGET_PAIR[role]?.[gem.tier];
+  if (!target || gem.options.length !== 2) return false;
+  const names = gem.options.map((o) => o.name).sort();
+  const targetNames = [...target].sort();
+  const namesMatch = names.length === targetNames.length && names.every((n, i) => n === targetNames[i]);
+  return namesMatch && gem.options.every((o) => o.level === 5);
 }
 
 /* ---------------------------------------------------------------------- */
@@ -308,7 +340,6 @@ function renderPriceTable() {
 function buildCorePlan(core, scenarioKey, role) {
   const side = core.name.includes("질서") ? "order" : "chaos";
   const remaining = { ...SCENARIOS[scenarioKey].counts };
-  const idealMax = idealMaxFor(role);
 
   const gems = core.gems.map((g, idx) => ({
     gem: g,
@@ -341,27 +372,32 @@ function buildCorePlan(core, scenarioKey, role) {
 
   const recommendations = [];
   mismatched.forEach((g) => {
+    const recommendedTier = RANK_TIER[side][g.recommendedRank] ?? g.gem.tier;
+    // 이 슬롯을 새 티어로 바꿀 거라, 목표는 "새 티어의 종결 조합" 기준으로 잡는다.
+    const targetMax = idealMaxForTier(role, recommendedTier);
     recommendations.push({
       core,
       side,
       gem: g.gem,
       value: g.value,
-      gap: idealMax - g.value,
+      gap: targetMax - g.value,
       type: "mismatch",
       currentTier: g.gem.tier,
-      recommendedTier: RANK_TIER[side][g.recommendedRank] ?? g.gem.tier,
+      recommendedTier,
     });
   });
 
   gems
-    .filter((g) => g.tierOk && idealMax - g.value > 0.001 && !isGemComplete(g.gem, role))
+    .filter((g) => g.tierOk && !isGemComplete(g.gem, role))
+    .filter((g) => idealMaxForTier(role, g.gem.tier) - g.value > 0.001)
     .forEach((g) => {
+      const targetMax = idealMaxForTier(role, g.gem.tier);
       recommendations.push({
         core,
         side,
         gem: g.gem,
         value: g.value,
-        gap: idealMax - g.value,
+        gap: targetMax - g.value,
         type: "reprocess",
         currentTier: g.gem.tier,
         recommendedTier: g.gem.tier,
@@ -413,7 +449,7 @@ function renderRecCard(r, rank, role) {
       : `${r.currentTier} 그대로 재가공 (더 좋은 2옵션 노리기)`;
   const optionsText = r.gem.options.map((o) => `${o.name} Lv.${o.level}`).join(" · ");
   const unit = ROLE_UNIT[role];
-  const idealMax = idealMaxFor(role);
+  const idealMax = idealMaxForTier(role, r.recommendedTier);
 
   const powerGain = estimatePowerGain(r.gap, role);
   const powerHtml =
