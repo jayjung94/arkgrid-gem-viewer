@@ -218,15 +218,11 @@ const RANK_TIER = {
 };
 
 const priceStatusEl = document.getElementById("priceStatus");
-const scenarioResultEl = document.getElementById("scenarioResult");
 const priceTableEl = document.getElementById("priceTable");
 let gemPriceData = null;
 
 document.querySelectorAll('input[name="scenario"]').forEach((radio) => {
-  radio.addEventListener("change", () => {
-    renderScenario();
-    renderReplacementPlan();
-  });
+  radio.addEventListener("change", () => renderReplacementPlan());
 });
 
 async function loadGemPrices() {
@@ -240,107 +236,13 @@ async function loadGemPrices() {
     }
     gemPriceData = data;
     const fetchedAt = new Date(data.fetchedAt).toLocaleString("ko-KR");
-    priceStatusEl.textContent = `영웅 등급 원석 기준 · ${fetchedAt} 조회${data.cached ? " (캐시)" : ""}`;
-    renderScenario();
+    priceStatusEl.textContent = `${fetchedAt} 조회${data.cached ? " · 캐시" : ""}`;
     renderPriceTable();
     renderReplacementPlan();
   } catch (err) {
     console.error(err);
     priceStatusEl.textContent = "서버에 연결할 수 없습니다.";
   }
-}
-
-function priceOf(list, rank) {
-  const row = list.find((r) => r.rank === rank);
-  return row ? row.currentMinPrice : null;
-}
-
-function calcScenarioCost(list, counts) {
-  let total = 0;
-  let hasNull = false;
-  const rows = Object.entries(counts).map(([rank, count]) => {
-    const row = list.find((r) => r.rank === Number(rank));
-    const price = row ? row.currentMinPrice : null;
-    if (price == null) hasNull = true;
-    else total += price * count;
-    return { tier: row ? row.tier : `티어${rank}`, count, price, subtotal: price != null ? price * count : null };
-  });
-  return { rows, total, hasNull };
-}
-
-function renderScenario() {
-  if (!gemPriceData) return;
-  const selected = document.querySelector('input[name="scenario"]:checked').value;
-
-  scenarioResultEl.innerHTML = "";
-
-  const sides = [
-    { key: "order", label: "질서 코어 (안정/견고/불변)" },
-    { key: "chaos", label: "혼돈 코어 (침식/왜곡/붕괴)" },
-  ];
-
-  const costs = {}; // costs[side][scenarioKey] = total
-
-  sides.forEach(({ key, label }) => {
-    const list = gemPriceData[key];
-    costs[key] = {};
-
-    const card = document.createElement("div");
-    card.className = "side-cost-card";
-
-    const scenario = SCENARIOS[selected];
-    const { rows, total, hasNull } = calcScenarioCost(list, scenario.counts);
-
-    let rowsHtml = rows
-      .map(
-        (r) => `
-      <tr>
-        <td>${r.tier}</td>
-        <td class="num">${r.count}개</td>
-        <td class="num">${r.price != null ? r.price.toLocaleString() : "-"}</td>
-        <td class="num">${r.subtotal != null ? r.subtotal.toLocaleString() : "-"}</td>
-      </tr>`
-      )
-      .join("");
-
-    card.innerHTML = `
-      <h3>${label} · 시나리오 ${selected} (${scenario.label})</h3>
-      <table>
-        <thead>
-          <tr><th>티어</th><th class="num">필요 수량</th><th class="num">개당 시세</th><th class="num">소계</th></tr>
-        </thead>
-        <tbody>${rowsHtml}</tbody>
-        <tfoot>
-          <tr><td colspan="3">코어 1개 완성 비용</td><td class="num">${hasNull ? "일부 시세 없음" : total.toLocaleString() + " 골드"}</td></tr>
-        </tfoot>
-      </table>
-    `;
-    scenarioResultEl.appendChild(card);
-
-    // A/B 둘 다 계산해서 비교 배너에 사용
-    Object.keys(SCENARIOS).forEach((key2) => {
-      costs[key][key2] = calcScenarioCost(list, SCENARIOS[key2].counts);
-    });
-  });
-
-  // 비교 배너
-  sides.forEach(({ key, label }) => {
-    const a = costs[key].A;
-    const b = costs[key].B;
-    if (a.hasNull || b.hasNull) return;
-    const diff = a.total - b.total;
-    const banner = document.createElement("div");
-    banner.className = "compare-banner";
-    if (diff === 0) {
-      banner.innerHTML = `${label}: 시나리오 A와 B의 코어당 비용이 <b>동일</b>합니다 (${a.total.toLocaleString()} 골드).`;
-    } else {
-      const cheaper = diff > 0 ? "B" : "A";
-      const cheaperCost = diff > 0 ? b.total : a.total;
-      const gap = Math.abs(diff);
-      banner.innerHTML = `${label}: 지금은 <b>시나리오 ${cheaper}</b>가 코어당 <b>${gap.toLocaleString()} 골드</b> 더 저렴합니다 (A ${a.total.toLocaleString()} / B ${b.total.toLocaleString()} 골드, ${cheaper} 선택 시 ${cheaperCost.toLocaleString()} 골드).`;
-    }
-    scenarioResultEl.appendChild(banner);
-  });
 }
 
 function renderPriceTable() {
@@ -361,7 +263,7 @@ function renderPriceTable() {
       }
       return `
       <tr>
-        <td><span class="rank-badge">${i + 1}</span><img src="${r.icon}" alt="" />${r.side === "order" ? "질서" : "혼돈"} · ${r.tier}</td>
+        <td><span class="rank-num">${i + 1}</span><img src="${r.icon}" alt="" />${r.side === "order" ? "질서" : "혼돈"} · ${r.tier}</td>
         <td class="num">${r.currentMinPrice.toLocaleString()}</td>
         <td class="num">${r.yDayAvgPrice != null ? r.yDayAvgPrice.toLocaleString(undefined, { maximumFractionDigits: 1 }) : "-"}</td>
         <td class="num">${deltaHtml}</td>
@@ -372,11 +274,10 @@ function renderPriceTable() {
   priceTableEl.innerHTML = `
     <table>
       <thead>
-        <tr><th>순위 · 티어 (영웅 등급)</th><th class="num">현재 최저가</th><th class="num">어제 평균가</th><th class="num">전일 대비</th></tr>
+        <tr><th>티어 (영웅 등급)</th><th class="num">현재 최저가</th><th class="num">어제 평균가</th><th class="num">전일 대비</th></tr>
       </thead>
       <tbody>${rowsHtml}</tbody>
     </table>
-    <p class="price-status">1위가 지금 가장 저렴한 티어입니다 — 같은 예산이면 이 티어부터 사서 가공하는 게 유리해요.</p>
   `;
 }
 
@@ -529,6 +430,17 @@ document.querySelectorAll('input[name="role"]').forEach((radio) => {
       renderReplacementPlan();
     }
   });
+});
+
+// 세그먼트 토글의 활성 라벨 스타일 동기화
+document.querySelectorAll(".segmented").forEach((group) => {
+  const sync = () => {
+    group.querySelectorAll("label").forEach((label) => {
+      label.classList.toggle("active", label.querySelector("input").checked);
+    });
+  };
+  group.querySelectorAll("input").forEach((input) => input.addEventListener("change", sync));
+  sync();
 });
 
 loadGemPrices();
