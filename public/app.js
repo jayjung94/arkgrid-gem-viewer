@@ -371,11 +371,22 @@ function priceForTier(side, tierName) {
   return row ? row.currentMinPrice : null;
 }
 
-// 딜러 한정: "현재 전투력 × (딜증 격차 / 100)"으로 젬 교체 시 예상 전투력 상승분을 추정한다.
-// (전투력이 총 딜증 배율에 비례한다고 가정한 근사치 — 로펙 등 커뮤니티 툴도 쓰는 방식)
+// 딜러: "현재 전투력 × (딜증 격차 / 100)"으로 젬 교체 시 예상 전투력 상승분을 추정한다.
+// (전투력이 총 딜증 배율에 비례한다고 가정한 근사치 — 로펙 등 커뮤니티 툴도 쓰는 방식.
+// 이 캐릭터의 실제 전투력에 비례하므로 캐릭터마다 다르게 나온다.)
+//
+// 서포터: 커뮤니티에서 측정된 옵션별 고정 전투력 기여치(아공강/낙인력/아피강 레벨당 점수)를
+// 그대로 쓴다. 이 캐릭터의 실제 전투력에 비례 스케일링된 값이 아니라 고정 평균값이라
+// 딜러 쪽보다 정확도는 떨어진다.
 function estimatePowerGain(gap, role) {
-  if (role !== "dealer" || !currentCharacterData?.combatPower) return null;
-  return currentCharacterData.combatPower * (gap / 100);
+  if (role === "dealer") {
+    if (!currentCharacterData?.combatPower) return null;
+    return currentCharacterData.combatPower * (gap / 100);
+  }
+  if (role === "support") {
+    return gap;
+  }
+  return null;
 }
 
 function renderRecCard(r, rank, role) {
@@ -430,6 +441,8 @@ function renderReplacementPlan() {
   const powerNote =
     role === "dealer" && currentCharacterData.combatPower
       ? ` "예상 전투력"은 현재 전투력(${currentCharacterData.combatPower.toLocaleString()}) 기준, 재가공이 성공해서 이론 최댓값이 나온다고 가정한 <b>상한 추정치</b>예요 — 실제 가공은 확률이라 이보다 적게 오를 수 있습니다.`
+      : role === "support"
+      ? ` 서포터 "예상 전투력"은 이 캐릭터의 실제 전투력에 비례한 값이 아니라, <b>커뮤니티에서 측정된 옵션별 고정 평균치</b>예요 — 딜러 쪽보다 정확도가 낮으니 참고용으로만 봐주세요.`
       : "";
   document.getElementById("lopecNote").innerHTML =
     `<span>이 %는 로펙(lopec.kr)이 공개하는 실제 딜증 환산율과 비교 검증한 값이에요.${powerNote} <b>정확한 점수 변화</b>는 골드를 쓰기 전에 로펙 시뮬레이터에서 마지막으로 확인하세요.</span>` +
