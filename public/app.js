@@ -322,21 +322,60 @@ function gemLuckBucket(gem, role) {
   return "other";
 }
 
+// "적어도 준종결"에 도달할 확률 = 완전종결 + 준종결 + 옵션만완성(전부 준종결보다 낫거나 같음)
+// 중 준종결 미만("그 외")이 아닐 확률.
+const AT_LEAST_SEMI_PROB = 1 - HERO_GRADE_LUCK.other;
+
 function computeGemLuck(cores, role) {
   const counts = { full: 0, optionOnly: 0, semi: 0, other: 0 };
   let totalExpectedTries = 0;
   let totalGems = 0;
 
+  // (A) 지금 낀 젬들의 총 기대값(골드) — 시세를 알 수 없는 슬롯은 집계에서 제외.
+  let currentGold = 0;
+  let currentGoldKnownCount = 0;
+
+  // (B) "그 외"(준종결 미만) 젬을 새로 깎아 준종결 이상으로 올리는 데 필요한 기대값(골드).
+  let upgradeGold = 0;
+  let upgradeCount = 0;
+  let upgradeGoldKnownCount = 0;
+
   cores.forEach((core) => {
+    const side = core.name.includes("질서") ? "order" : "chaos";
     core.gems.forEach((gem) => {
       const bucket = gemLuckBucket(gem, role);
       counts[bucket] += 1;
-      totalExpectedTries += 1 / HERO_GRADE_LUCK[bucket];
       totalGems += 1;
+
+      const tries = 1 / HERO_GRADE_LUCK[bucket];
+      totalExpectedTries += tries;
+
+      const price = priceForTier(side, gem.tier);
+      if (price != null) {
+        currentGold += tries * price;
+        currentGoldKnownCount += 1;
+      }
+
+      if (bucket === "other") {
+        upgradeCount += 1;
+        if (price != null) {
+          upgradeGold += (1 / AT_LEAST_SEMI_PROB) * price;
+          upgradeGoldKnownCount += 1;
+        }
+      }
     });
   });
 
-  return { counts, totalExpectedTries, totalGems };
+  return {
+    counts,
+    totalExpectedTries,
+    totalGems,
+    currentGold,
+    currentGoldKnownCount,
+    upgradeGold,
+    upgradeCount,
+    upgradeGoldKnownCount,
+  };
 }
 
 function renderGemLuck(data, role) {
@@ -347,16 +386,33 @@ function renderGemLuck(data, role) {
     return;
   }
 
-  const { counts, totalExpectedTries, totalGems } = computeGemLuck(data.cores, role);
+  const r = computeGemLuck(data.cores, role);
+  const priceReady = !!gemPriceData;
+
+  const currentGoldHtml = !priceReady
+    ? "시세 불러오는 중..."
+    : r.currentGoldKnownCount === 0
+    ? '<span class="gem-luck-note">지금 거래소에 매물이 없어 시세를 확인할 수 없어요</span>'
+    : `약 <b>${Math.round(r.currentGold).toLocaleString()} 골드</b>` +
+      (r.currentGoldKnownCount < r.totalGems ? ` <span class="gem-luck-note">(시세 확인된 ${r.currentGoldKnownCount}/${r.totalGems}개 기준)</span>` : "");
+
+  const upgradeGoldHtml = !priceReady
+    ? "시세 불러오는 중..."
+    : r.upgradeCount === 0
+    ? "없어요 (전부 준종결 이상)"
+    : r.upgradeGoldKnownCount === 0
+    ? '<span class="gem-luck-note">지금 거래소에 매물이 없어 시세를 확인할 수 없어요</span>'
+    : `약 <b>${Math.round(r.upgradeGold).toLocaleString()} 골드</b>` +
+      (r.upgradeGoldKnownCount < r.upgradeCount ? ` <span class="gem-luck-note">(시세 확인된 ${r.upgradeGoldKnownCount}/${r.upgradeCount}개 기준)</span>` : "");
 
   el.innerHTML = `
-    <div class="gem-luck-title">🎲 젬 가공 총 기대값 <span class="gem-luck-note">(영웅 등급 원석 기준 추정)</span></div>
-    <div class="gem-luck-main">장착 젬 ${totalGems}개를 만들려면 통계적으로 총 <b>약 ${Math.round(
-    totalExpectedTries
-  ).toLocaleString()}회</b>의 가공 시도가 기대돼요.</div>
+    <div class="gem-luck-title">🎲 젬 가공 총 기대값 <span class="gem-luck-note">(영웅 등급 원석 확률 × 현재 거래소 시세)</span></div>
+    <div class="gem-luck-main">지금 낀 젬 ${r.totalGems}개의 총 기대값: ${currentGoldHtml}</div>
+    <div class="gem-luck-main">그중 준종결 미만 <b>${r.upgradeCount}</b>개를 새로 깎아 준종결 이상으로 올리는 데 필요한 기대값: ${upgradeGoldHtml}</div>
     <div class="gem-luck-breakdown">
-      완전종결 <b>${counts.full}</b>개 · 준종결 <b>${counts.semi}</b>개 ·
-      옵션만 완성 <b>${counts.optionOnly}</b>개 · 그 외 <b>${counts.other}</b>개
+      완전종결 <b>${r.counts.full}</b>개 · 준종결 <b>${r.counts.semi}</b>개 ·
+      옵션만 완성 <b>${r.counts.optionOnly}</b>개 · 그 외 <b>${r.counts.other}</b>개
+      · 기대 시도 횟수 합계 <b>${Math.round(r.totalExpectedTries).toLocaleString()}회</b>
     </div>
   `;
 }
@@ -401,6 +457,7 @@ async function loadGemPrices() {
     priceStatusEl.textContent = `${fetchedAt} 조회${data.cached ? " · 캐시" : ""}`;
     renderPriceTable();
     renderReplacementPlan();
+    if (currentCharacterData) renderGemLuck(currentCharacterData, currentRole());
   } catch (err) {
     console.error(err);
     priceStatusEl.textContent = "서버에 연결할 수 없습니다.";
