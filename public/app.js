@@ -315,6 +315,17 @@ const HERO_GRADE_LUCK = {
 };
 HERO_GRADE_LUCK.other = 1 - HERO_GRADE_LUCK.full - HERO_GRADE_LUCK.optionOnly - HERO_GRADE_LUCK.semi;
 
+// 희귀 등급 원석 기준 확률 (가공 7회 · 다른 항목 보기 1회 — 영웅보다 기회는 적지만
+// 원석 자체가 훨씬 싸서, 케이스에 따라 총 기대비용은 오히려 더 저렴할 수 있다).
+const RARE_GRADE_LUCK = {
+  full: 0.000026,
+  optionOnly: 0.002815,
+  semi: 0.001935,
+};
+RARE_GRADE_LUCK.other = 1 - RARE_GRADE_LUCK.full - RARE_GRADE_LUCK.optionOnly - RARE_GRADE_LUCK.semi;
+
+const GRADE_LUCK = { 영웅: HERO_GRADE_LUCK, 희귀: RARE_GRADE_LUCK };
+
 function gemLuckBucket(gem, role) {
   if (isFullyComplete(gem, role)) return "full";
   if (isGemComplete(gem, role)) return "optionOnly";
@@ -322,9 +333,26 @@ function gemLuckBucket(gem, role) {
   return "other";
 }
 
-// "적어도 준종결"에 도달할 확률 = 완전종결 + 준종결 + 옵션만완성(전부 준종결보다 낫거나 같음)
-// 중 준종결 미만("그 외")이 아닐 확률.
-const AT_LEAST_SEMI_PROB = 1 - HERO_GRADE_LUCK.other;
+// "적어도 준종결"에 도달할 확률 = 준종결 미만("그 외")이 아닐 확률. 등급별로 따로 둔다.
+const AT_LEAST_SEMI_PROB = {
+  영웅: 1 - HERO_GRADE_LUCK.other,
+  희귀: 1 - RARE_GRADE_LUCK.other,
+};
+
+// 같은 결과(버킷)를 노릴 때 "영웅 등급 원석으로 깎기" vs "희귀 등급 원석으로 깎기" 중
+// 실제 기대비용(확률 역수 × 현재 시세)이 더 싼 경로를 고른다. loaup.com과 동일한 방식.
+// 가격을 모르는 등급은 후보에서 제외하고, 둘 다 모르면 영웅 등급 기준 시도 횟수만 반환한다.
+function cheaperPath(side, tier, probForGrade) {
+  const candidates = ["영웅", "희귀"].map((grade) => {
+    const p = probForGrade(grade);
+    const tries = 1 / p;
+    const price = effectivePriceForTier(side, tier, grade);
+    return { grade, tries, cost: price != null ? tries * price : null };
+  });
+  const withCost = candidates.filter((c) => c.cost != null);
+  if (withCost.length > 0) return withCost.reduce((a, b) => (b.cost < a.cost ? b : a));
+  return candidates[0];
+}
 
 function computeGemLuck(cores, role) {
   const counts = { full: 0, optionOnly: 0, semi: 0, other: 0 };
@@ -347,19 +375,18 @@ function computeGemLuck(cores, role) {
       counts[bucket] += 1;
       totalGems += 1;
 
-      const tries = 1 / HERO_GRADE_LUCK[bucket];
-      totalExpectedTries += tries;
-
-      const price = priceForTier(side, gem.tier);
-      if (price != null) {
-        currentGold += tries * price;
+      const path = cheaperPath(side, gem.tier, (grade) => GRADE_LUCK[grade][bucket]);
+      totalExpectedTries += path.tries;
+      if (path.cost != null) {
+        currentGold += path.cost;
         currentGoldKnownCount += 1;
       }
 
       if (bucket === "other") {
         upgradeCount += 1;
-        if (price != null) {
-          upgradeGold += (1 / AT_LEAST_SEMI_PROB) * price;
+        const upgradePath = cheaperPath(side, gem.tier, (grade) => AT_LEAST_SEMI_PROB[grade]);
+        if (upgradePath.cost != null) {
+          upgradeGold += upgradePath.cost;
           upgradeGoldKnownCount += 1;
         }
       }
@@ -406,7 +433,7 @@ function renderGemLuck(data, role) {
       (r.upgradeGoldKnownCount < r.upgradeCount ? ` <span class="gem-luck-note">(시세 확인된 ${r.upgradeGoldKnownCount}/${r.upgradeCount}개 기준)</span>` : "");
 
   el.innerHTML = `
-    <div class="gem-luck-title">🎲 젬 가공 총 기대값 <span class="gem-luck-note">(영웅 등급 원석 확률 × 현재 거래소 시세)</span></div>
+    <div class="gem-luck-title">🎲 젬 가공 총 기대값 <span class="gem-luck-note">(희귀·영웅 등급 원석 중 더 저렴한 경로 × (거래소 시세 + 페온 12개 환산 ${PEON_GOLD_COST.toLocaleString()}골드))</span></div>
     <div class="gem-luck-main">지금 낀 젬 ${r.totalGems}개의 총 기대값: ${currentGoldHtml}</div>
     <div class="gem-luck-main">그중 준종결 미만 <b>${r.upgradeCount}</b>개를 새로 깎아 준종결 이상으로 올리는 데 필요한 기대값: ${upgradeGoldHtml}</div>
     <div class="gem-luck-breakdown">
@@ -583,10 +610,23 @@ function eulro(word) {
   return hasBatchim(word) ? `${word}으로` : `${word}로`;
 }
 
-function priceForTier(side, tierName) {
+function priceForTier(side, tierName, grade = "영웅") {
   if (!gemPriceData) return null;
   const row = gemPriceData[side].find((r) => r.tier === tierName);
-  return row ? row.currentMinPrice : null;
+  if (!row) return null;
+  return grade === "희귀" ? row.rareMinPrice : row.currentMinPrice;
+}
+
+// 원석은 경매장 골드 외에 페온도 개당 12개 든다. 페온은 100개당 900크리스탈이고
+// 크리스탈 시세는 계속 바뀌므로, 900크리스탈=15만 골드(고정)로 환산한다.
+const PEON_PER_GEM = 12;
+const GOLD_PER_PEON = 150000 / 100;
+const PEON_GOLD_COST = PEON_PER_GEM * GOLD_PER_PEON;
+
+// 기대값 계산에서 실제 원석 1개를 구매하는 데 드는 총 골드(경매장가 + 페온 환산분).
+function effectivePriceForTier(side, tierName, grade = "영웅") {
+  const base = priceForTier(side, tierName, grade);
+  return base != null ? base + PEON_GOLD_COST : null;
 }
 
 // 딜러: "현재 전투력 × (딜증 격차 / 100)"으로 젬 교체 시 예상 전투력 상승분을 추정한다.
