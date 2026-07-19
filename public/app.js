@@ -17,6 +17,7 @@ async function search(name) {
   statusEl.textContent = `"${name}" 검색 중...`;
   statusEl.classList.remove("error");
   resultEl.innerHTML = "";
+  document.getElementById("gemLuck").innerHTML = "";
   replacementSectionEl.style.display = "none";
 
   try {
@@ -33,6 +34,7 @@ async function search(name) {
     statusEl.textContent = `${data.name} 님의 아크그리드 (코어 ${data.cores.length}개)`;
     currentCharacterData = data;
     render(data);
+    renderGemLuck(data, currentRole());
     replacementSectionEl.style.display = "";
     renderReplacementPlan();
   } catch (err) {
@@ -297,6 +299,66 @@ function willpowerSlack(gem) {
   const targetWillpower = TIER_TARGET_WILLPOWER[gem.tier];
   if (targetWillpower == null || gem.willpower == null) return 0;
   return gem.willpower - targetWillpower;
+}
+
+/* ---------------------------------------------------------------------- */
+/* 젬 가공 "총 기대값" — 몬테카를로 시뮬레이션(영웅 등급 원석 기준, 100만 회) 결과 */
+/* ---------------------------------------------------------------------- */
+
+// 완전종결/준종결/옵션만 완성(의지력·포인트 미달) 각각이 실제로 나올 확률.
+// 티어(안정/견고/불변 등)는 확률에 영향이 없어 등급(원석 고급/희귀/영웅)만 반영했고,
+// 그중 실전에서 고점용으로 실제 쓰이는 영웅 등급 기준값을 썼다.
+const HERO_GRADE_LUCK = {
+  full: 0.000303, // 완전종결: 효율5·포인트5·옵션 둘 다 목표 Lv.5
+  optionOnly: 0.005614, // 옵션은 완성(둘 다 Lv.5)인데 효율/포인트가 기준 미달
+  semi: 0.005108, // 준종결: 옵션 레벨 합 9, 효율 4 이상
+};
+HERO_GRADE_LUCK.other = 1 - HERO_GRADE_LUCK.full - HERO_GRADE_LUCK.optionOnly - HERO_GRADE_LUCK.semi;
+
+function gemLuckBucket(gem, role) {
+  if (isFullyComplete(gem, role)) return "full";
+  if (isGemComplete(gem, role)) return "optionOnly";
+  if (isSemiComplete(gem, role)) return "semi";
+  return "other";
+}
+
+function computeGemLuck(cores, role) {
+  const counts = { full: 0, optionOnly: 0, semi: 0, other: 0 };
+  let totalExpectedTries = 0;
+  let totalGems = 0;
+
+  cores.forEach((core) => {
+    core.gems.forEach((gem) => {
+      const bucket = gemLuckBucket(gem, role);
+      counts[bucket] += 1;
+      totalExpectedTries += 1 / HERO_GRADE_LUCK[bucket];
+      totalGems += 1;
+    });
+  });
+
+  return { counts, totalExpectedTries, totalGems };
+}
+
+function renderGemLuck(data, role) {
+  const el = document.getElementById("gemLuck");
+  if (!el) return;
+  if (!data.cores || data.cores.length === 0) {
+    el.innerHTML = "";
+    return;
+  }
+
+  const { counts, totalExpectedTries, totalGems } = computeGemLuck(data.cores, role);
+
+  el.innerHTML = `
+    <div class="gem-luck-title">🎲 젬 가공 총 기대값 <span class="gem-luck-note">(영웅 등급 원석 기준 추정)</span></div>
+    <div class="gem-luck-main">장착 젬 ${totalGems}개를 만들려면 통계적으로 총 <b>약 ${Math.round(
+    totalExpectedTries
+  ).toLocaleString()}회</b>의 가공 시도가 기대돼요.</div>
+    <div class="gem-luck-breakdown">
+      완전종결 <b>${counts.full}</b>개 · 준종결 <b>${counts.semi}</b>개 ·
+      옵션만 완성 <b>${counts.optionOnly}</b>개 · 그 외 <b>${counts.other}</b>개
+    </div>
+  `;
 }
 
 /* ---------------------------------------------------------------------- */
@@ -573,6 +635,7 @@ document.querySelectorAll('input[name="role"]').forEach((radio) => {
   radio.addEventListener("change", () => {
     if (currentCharacterData) {
       render(currentCharacterData);
+      renderGemLuck(currentCharacterData, currentRole());
       renderReplacementPlan();
     }
   });
