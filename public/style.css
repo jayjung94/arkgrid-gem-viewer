@@ -18,6 +18,7 @@
   --good: #0ca30c;
   --warning: #c98500;
   --critical: #e66767;
+  --esther: #3dd6e6;
 }
 
 * {
@@ -411,8 +412,11 @@ body {
   color: var(--ink-muted);
   font-variant-numeric: tabular-nums;
 }
-.gem-value.gem-complete {
-  color: var(--good);
+.gem-value.gem-full {
+  color: var(--esther);
+}
+.gem-value.gem-option-only {
+  color: #d9c07a;
 }
 .gem-value.gem-semi {
   color: var(--order);

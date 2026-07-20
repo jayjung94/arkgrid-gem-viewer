@@ -132,7 +132,7 @@ function renderGem(gem, opts = {}) {
 
   let dpsHtml;
   if (isFullyComplete(gem, role)) {
-    dpsHtml = `<div class="gem-value gem-complete">완전 종결 젬 (의지력·포인트·옵션 모두 기준 충족)</div>`;
+    dpsHtml = `<div class="gem-value gem-full">완전 종결 젬 (의지력·포인트·옵션 모두 기준 충족)</div>`;
   } else if (isGemComplete(gem, role)) {
     const wpSlack = willpowerSlack(gem);
     const wpText =
@@ -141,7 +141,7 @@ function renderGem(gem, opts = {}) {
         : gem.corePoint !== TIER_TARGET_POINT
         ? `포인트가 기준(${TIER_TARGET_POINT})과 달라요 (현재 ${gem.corePoint})`
         : "";
-    dpsHtml = `<div class="gem-value gem-complete">옵션은 종결이에요 — ${wpText}</div>`;
+    dpsHtml = `<div class="gem-value gem-option-only">옵션은 종결이에요 — ${wpText}</div>`;
   } else if (isSemiComplete(gem, role)) {
     dpsHtml = `<div class="gem-value gem-semi">준종결 젬이에요 (옵션 레벨 합 9) — 충분히 좋은 상태예요</div>`;
   } else if (powerGain != null) {
