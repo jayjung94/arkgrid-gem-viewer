@@ -642,3 +642,253 @@ body {
   font-size: 12px;
   margin-top: 10px;
 }
+
+/* ---- todo (숙제체크) ---- */
+.todo-nav-link {
+  display: inline-block;
+  margin-top: 8px;
+  color: var(--ink-muted);
+  font-size: 12.5px;
+  text-decoration: none;
+}
+.todo-nav-link:hover {
+  color: var(--ink-secondary);
+}
+
+.todo-auth {
+  width: 100%;
+  max-width: 420px;
+  display: flex;
+  justify-content: center;
+}
+.todo-auth-card {
+  width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 24px;
+}
+.todo-auth-card h2 {
+  font-size: 16px;
+  margin: 0 0 4px;
+}
+.todo-auth-form {
+  display: flex;
+  gap: 8px;
+  margin: 16px 0 10px;
+}
+.todo-auth-form input {
+  flex: 1;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--ink);
+  font-size: 14px;
+  font-family: inherit;
+  text-transform: uppercase;
+}
+.todo-auth-form button,
+.todo-add-char button,
+.todo-add-custom button {
+  padding: 10px 18px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--ink);
+  font-weight: 600;
+  font-size: 13.5px;
+  cursor: pointer;
+  font-family: inherit;
+}
+.todo-secondary-btn {
+  padding: 6px 12px;
+  border-radius: 7px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--ink-muted);
+  font-size: 12px;
+  cursor: pointer;
+  font-family: inherit;
+}
+.todo-secondary-btn:hover {
+  color: var(--ink);
+  border-color: var(--border-strong);
+}
+.todo-auth-status {
+  min-height: 16px;
+  font-size: 12.5px;
+  color: var(--ink-muted);
+}
+.todo-auth-status.error {
+  color: var(--critical);
+}
+
+.todo-app {
+  width: 100%;
+  max-width: 1040px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.todo-code-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 16px;
+  font-size: 13px;
+  color: var(--ink-secondary);
+}
+.todo-code-bar b {
+  color: var(--esther);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.05em;
+}
+.todo-code-bar button:first-of-type {
+  padding: 5px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--ink);
+  font-size: 12px;
+  cursor: pointer;
+  font-family: inherit;
+}
+.todo-code-bar .todo-secondary-btn {
+  margin-left: auto;
+}
+
+.todo-add-char,
+.todo-add-custom {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.todo-add-char input,
+.todo-add-custom input {
+  flex: 1;
+  min-width: 160px;
+  padding: 9px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 13.5px;
+  font-family: inherit;
+}
+.todo-add-custom select {
+  padding: 9px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 13px;
+  font-family: inherit;
+}
+
+.todo-characters {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.todo-char-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px;
+}
+.todo-char-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.todo-char-name {
+  font-size: 14.5px;
+  font-weight: 700;
+}
+.todo-raid-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.todo-raid-box {
+  background: var(--surface-2);
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+.todo-raid-title {
+  font-size: 12.5px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+.todo-raid-diff-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+.todo-raid-diff-row:last-child {
+  margin-bottom: 0;
+}
+.todo-raid-diff-label {
+  color: var(--ink-muted);
+  width: 32px;
+  flex-shrink: 0;
+}
+.todo-gate-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--ink-secondary);
+  cursor: pointer;
+}
+.todo-gate-checkbox input {
+  accent-color: var(--esther);
+}
+.todo-daily-row {
+  display: flex;
+  gap: 18px;
+  padding-top: 10px;
+  border-top: 1px solid var(--gridline);
+}
+.todo-daily-checkbox {
+  font-size: 13px;
+}
+
+.todo-custom-section {
+  border-top: 1px solid var(--gridline);
+  padding-top: 20px;
+}
+.todo-custom-section h2 {
+  font-size: 16px;
+  margin: 0 0 4px;
+}
+.todo-add-custom {
+  margin: 14px 0;
+}
+.todo-custom-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.todo-custom-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 13px;
+}
+.todo-reset-tag {
+  margin-left: auto;
+  color: var(--ink-muted);
+  font-size: 11px;
+}
