@@ -441,7 +441,7 @@ function renderGemLuck(data, role) {
       (r.upgradeGoldKnownCount < r.upgradeCount ? ` <span class="gem-luck-note">(시세 확인된 ${r.upgradeGoldKnownCount}/${r.upgradeCount}개 기준)</span>` : "");
 
   el.innerHTML = `
-    <div class="gem-luck-title">🎲 젬 가공 총 기대값 <span class="gem-luck-note">(희귀·영웅 원석 중 더 저렴한 경로 × (시세 + 페온 12개 ${Math.round(PEON_GOLD_COST).toLocaleString()}골드) + 가공 초기화 기대비용 ${Math.round(RESET_GOLD_COST).toLocaleString()}골드)</span></div>
+    <div class="gem-luck-title">🎲 젬 가공 총 기대값 <span class="gem-luck-note">(희귀·영웅 원석 중 더 저렴한 경로 × (시세 + 페온 12개 ${Math.round(PEON_GOLD_COST).toLocaleString()}골드 + 가공비 1회당 900골드) + 가공 초기화 기대비용 ${Math.round(RESET_GOLD_COST).toLocaleString()}골드)</span></div>
     <div class="gem-luck-main">지금 낀 젬 ${r.totalGems}개의 총 기대값: ${currentGoldHtml}</div>
     <div class="gem-luck-main">그중 준종결 미만 <b>${r.upgradeCount}</b>개를 새로 깎아 준종결 이상으로 올리는 데 필요한 기대값: ${upgradeGoldHtml}</div>
     <div class="gem-luck-breakdown">
@@ -631,10 +631,21 @@ const PEON_PER_GEM = 12;
 const GOLD_PER_PEON = 150000 / 100;
 const PEON_GOLD_COST = PEON_PER_GEM * GOLD_PER_PEON;
 
-// 기대값 계산에서 실제 원석 1개를 구매하는 데 드는 총 골드(경매장가 + 페온 환산분).
+// 가공 1회 시도(차수)마다 900골드가 드는데(등급 무관, 가공비용 ±100% 변동 이벤트는
+// 무시하기로 함), 완전종결로 일찍 멈추는 경우는 극히 드물어서(0.1% 미만) 사실상
+// 매번 그 등급의 가공 횟수를 전부 쓴다고 보고 "등급별 총 가공비"로 계산한다.
+const PROCESSING_COST_PER_TURN = 900;
+const GRADE_TURNS = { 영웅: 9, 희귀: 7 };
+const PROCESSING_COST_PER_GEM = {
+  영웅: PROCESSING_COST_PER_TURN * GRADE_TURNS.영웅,
+  희귀: PROCESSING_COST_PER_TURN * GRADE_TURNS.희귀,
+};
+
+// 기대값 계산에서 실제 원석 1개를 구매해서 끝까지 가공하는 데 드는 총 골드
+// (경매장가 + 페온 환산분 + 가공비).
 function effectivePriceForTier(side, tierName, grade = "영웅") {
   const base = priceForTier(side, tierName, grade);
-  return base != null ? base + PEON_GOLD_COST : null;
+  return base != null ? base + PEON_GOLD_COST + PROCESSING_COST_PER_GEM[grade] : null;
 }
 
 // 딜러: "현재 전투력 × (딜증 격차 / 100)"으로 젬 교체 시 예상 전투력 상승분을 추정한다.
