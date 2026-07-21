@@ -306,25 +306,33 @@ function willpowerSlack(gem) {
 /* ---------------------------------------------------------------------- */
 
 // 완전종결/준종결/옵션만 완성(의지력·포인트 미달) 각각이 실제로 나올 확률.
-// 티어(안정/견고/불변 등)는 확률에 영향이 없어 등급(원석 고급/희귀/영웅)만 반영했고,
-// 그중 실전에서 고점용으로 실제 쓰이는 영웅 등급 기준값을 썼다.
+// 티어(안정/견고/불변 등)는 확률에 영향이 없어 등급(원석 고급/희귀/영웅)만 반영했다.
+// "사용(분배)" 직후 뽑힌 초기 2옵션이 목표 조합과 다르면(5/6 확률) 턴을 쓰기 전에
+// 1회 한정 가공 초기화를 즉시 사용하는 전략까지 반영한 수치 (초기화 자체 비용은
+// RESET_GOLD_COST로 별도 가산).
 const HERO_GRADE_LUCK = {
-  full: 0.000303, // 완전종결: 효율5·포인트5·옵션 둘 다 목표 Lv.5
-  optionOnly: 0.005614, // 옵션은 완성(둘 다 Lv.5)인데 효율/포인트가 기준 미달
-  semi: 0.005108, // 준종결: 옵션 레벨 합 9, 효율 4 이상
+  full: 0.000542, // 완전종결: 효율5·포인트5·옵션 둘 다 목표 Lv.5
+  optionOnly: 0.009118, // 옵션은 완성(둘 다 Lv.5)인데 효율/포인트가 기준 미달
+  semi: 0.008159, // 준종결: 옵션 레벨 합 9, 효율 4 이상
 };
 HERO_GRADE_LUCK.other = 1 - HERO_GRADE_LUCK.full - HERO_GRADE_LUCK.optionOnly - HERO_GRADE_LUCK.semi;
 
 // 희귀 등급 원석 기준 확률 (가공 7회 · 다른 항목 보기 1회 — 영웅보다 기회는 적지만
 // 원석 자체가 훨씬 싸서, 케이스에 따라 총 기대비용은 오히려 더 저렴할 수 있다).
 const RARE_GRADE_LUCK = {
-  full: 0.000026,
-  optionOnly: 0.002815,
-  semi: 0.001935,
+  full: 0.000059,
+  optionOnly: 0.004798,
+  semi: 0.003286,
 };
 RARE_GRADE_LUCK.other = 1 - RARE_GRADE_LUCK.full - RARE_GRADE_LUCK.optionOnly - RARE_GRADE_LUCK.semi;
 
 const GRADE_LUCK = { 영웅: HERO_GRADE_LUCK, 희귀: RARE_GRADE_LUCK };
+
+// 가공 초기화: 1회 한정, 100크리스탈 소모. "사용(분배)" 옵션 페어가 목표와 다를 확률은
+// 등급과 무관하게 5/6(모든 등급에서 시뮬레이션상 83.33%로 확인됨) — 그 확률만큼
+// 기대적으로 초기화를 한 번 쓰게 된다고 보고 기대비용을 젬 1개당 한 번만 가산한다.
+const RESET_MISMATCH_PROB = 5 / 6;
+const RESET_GOLD_COST = RESET_MISMATCH_PROB * (100 / 900) * 150000; // 100크리스탈 = 900크리스탈당 15만골드 환산
 
 function gemLuckBucket(gem, role) {
   if (isFullyComplete(gem, role)) return "full";
@@ -378,7 +386,7 @@ function computeGemLuck(cores, role) {
       const path = cheaperPath(side, gem.tier, (grade) => GRADE_LUCK[grade][bucket]);
       totalExpectedTries += path.tries;
       if (path.cost != null) {
-        currentGold += path.cost;
+        currentGold += path.cost + RESET_GOLD_COST;
         currentGoldKnownCount += 1;
       }
 
@@ -386,7 +394,7 @@ function computeGemLuck(cores, role) {
         upgradeCount += 1;
         const upgradePath = cheaperPath(side, gem.tier, (grade) => AT_LEAST_SEMI_PROB[grade]);
         if (upgradePath.cost != null) {
-          upgradeGold += upgradePath.cost;
+          upgradeGold += upgradePath.cost + RESET_GOLD_COST;
           upgradeGoldKnownCount += 1;
         }
       }
@@ -433,7 +441,7 @@ function renderGemLuck(data, role) {
       (r.upgradeGoldKnownCount < r.upgradeCount ? ` <span class="gem-luck-note">(시세 확인된 ${r.upgradeGoldKnownCount}/${r.upgradeCount}개 기준)</span>` : "");
 
   el.innerHTML = `
-    <div class="gem-luck-title">🎲 젬 가공 총 기대값 <span class="gem-luck-note">(희귀·영웅 등급 원석 중 더 저렴한 경로 × (거래소 시세 + 페온 12개 환산 ${PEON_GOLD_COST.toLocaleString()}골드))</span></div>
+    <div class="gem-luck-title">🎲 젬 가공 총 기대값 <span class="gem-luck-note">(희귀·영웅 원석 중 더 저렴한 경로 × (시세 + 페온 12개 ${Math.round(PEON_GOLD_COST).toLocaleString()}골드) + 가공 초기화 기대비용 ${Math.round(RESET_GOLD_COST).toLocaleString()}골드)</span></div>
     <div class="gem-luck-main">지금 낀 젬 ${r.totalGems}개의 총 기대값: ${currentGoldHtml}</div>
     <div class="gem-luck-main">그중 준종결 미만 <b>${r.upgradeCount}</b>개를 새로 깎아 준종결 이상으로 올리는 데 필요한 기대값: ${upgradeGoldHtml}</div>
     <div class="gem-luck-breakdown">
